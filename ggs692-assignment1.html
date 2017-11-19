@@ -1,0 +1,30 @@
+<html>
+<head>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css"
+   integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ=="
+   crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"
+   integrity="sha512-lInM/apFSqyy1o6s89K4iQUKg6ppXEgsVxT35HbzUupEVRh2Eu9Wdl4tHj7dZO0s1uvplcYGmt3498TtHq+log=="
+   crossorigin=""></script>
+</head>
+<body>
+	<div id="map" style="height: 100%"></div>
+	<script>
+
+		// create a map in the "map" div, set the view to a given place and zoom
+		var map = L.map('map').setView([38.829647, -77.305535], 11);
+
+		// add an OpenStreetMap tile layer
+        var OpenStreetMap_Mapnik = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        });
+		OpenStreetMap_Mapnik.addTo(map);
+
+        // add a marker in the given location
+		L.marker([38.829647, -77.305535]).addTo(map);
+
+	</script>
+</body>
+</html>
