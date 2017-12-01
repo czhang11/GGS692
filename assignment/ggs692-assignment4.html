@@ -1,0 +1,114 @@
+<html>
+
+<head>
+
+    <meta name="description" content="Cartodb+Leaflet example - uses search field to query database">
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css"
+    integrity="sha512-07I2e+7D8p6he1SIM+1twR5TIrhUQn9+I6yjqD53JQjFiMf8EtC93ty0/5vJTZGF8aAocvHYNEDJajGdNx1IsQ=="
+    crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"
+    integrity="sha512-A7vV8IFfih/D732iSSKi20u/ooOfj/AGehOKq0f4vLT1Zr2Y+RX7C+w8A1gaSasGtRUZpF/NZgzSAu4/Gc41Lg=="
+    crossorigin=""></script>
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+
+    <!-- Markerclusters -->
+    <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v1.0.0/leaflet.markercluster.js'></script>
+    <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v1.0.0/MarkerCluster.css' rel='stylesheet' />
+    <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v1.0.0/MarkerCluster.Default.css' rel='stylesheet' />
+
+</head>
+
+
+<body>
+
+    <div id="map" style="width: 100%; height: 100%"></div>
+
+    <script>
+
+        // Map Init
+        var map = L.map('map', {
+        	center: [36.783912, -119.402656], //California
+        	zoom: 11
+        });
+
+
+        // Baselayer
+        var baseLayer = L.tileLayer('http://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}.{ext}', {
+        	attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        	subdomains: 'abcd',
+        	//minZoom: 0,
+        	//maxZoom: 20,
+        	ext: 'png'
+        }).addTo(map);
+
+
+        // MarkerClusterGroup that collects all GeoJSON objects
+        var group = new L.markerClusterGroup().addTo(map);
+        var geojsonlayer;
+
+
+        // Query
+        // https://czhang11.carto.com/dataset/geonames_ca
+        var querystem = "http://czhang11.carto.com/api/v2/sql?format=GeoJSON&q=SELECT * FROM geonames_ca WHERE to_tsvector('english', name) @@ to_tsquery( 'english', '";
+        var search = "ocean";
+        var query = querystem + search + "' )";
+        console.log("Initial query: " + query);
+        $.getJSON(query, function(data) {
+            geojsonlayer = L.geoJson(data, {
+                onEachFeature: function(feature, layer) {
+                  	// Popup info
+                  	layer.bindPopup("<h2>" + feature.properties.name + "</p>");
+                }
+            }).addTo(group);
+            map.fitBounds(group.getBounds()); // zooms to fit data
+        });
+
+        // Search Bar
+        var myControl = L.Control.extend({
+            options: {
+              	position: 'bottomleft'
+            },
+            onAdd: function(map) {
+              	this._div = L.DomUtil.create('div', 'myControl');
+              	this._div.innerHTML = '<h1 id="title" style="color:lightblue">Search term</h1>' +
+              		'<input type="text" id="myTextField" value="ocean, oak, etc."/>' +
+              		'<input type="submit" id="searchBtn" value="Search" onclick="change()"/>';
+              	L.DomEvent.disableClickPropagation(this._div);
+              	return this._div;
+            }
+        });
+        map.addControl(new myControl());
+
+        function change() {
+
+            search = document.getElementById('myTextField').value;
+            if (search.length == 0) {
+                alert('Nothing to search for...');
+                return;
+            }
+
+            group.removeLayer(geojsonlayer);
+
+            query = querystem + search + "' )";
+            console.log("Changed query: " + query);
+
+            $.getJSON(query, function(data) {
+                geojsonlayer = L.geoJson(data, {
+                    onEachFeature: function(feature, layer) {
+                        // Popup info
+                        layer.bindPopup("<h2>" + feature.properties.name + "</p>");
+                    }
+                }).addTo(group);
+            });
+
+            var title = document.getElementById('title');
+            title.innerHTML = search;
+        }
+
+    </script>
+
+</body>
+
+</html>

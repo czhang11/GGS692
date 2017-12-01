@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta name="description" content="Project V3 Population Increase Rate">
+    <title>Leaflet Layers Control Example</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css"
+    integrity="sha512-07I2e+7D8p6he1SIM+1twR5TIrhUQn9+I6yjqD53JQjFiMf8EtC93ty0/5vJTZGF8aAocvHYNEDJajGdNx1IsQ=="
+    crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"
+    integrity="sha512-A7vV8IFfih/D732iSSKi20u/ooOfj/AGehOKq0f4vLT1Zr2Y+RX7C+w8A1gaSasGtRUZpF/NZgzSAu4/Gc41Lg=="
+    crossorigin=""></script>
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+
+    <!-- Markerclusters -->
+    <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v1.0.0/leaflet.markercluster.js'></script>
+    <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v1.0.0/MarkerCluster.css' rel='stylesheet' />
+    <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v1.0.0/MarkerCluster.Default.css' rel='stylesheet' />
+
+    <style>
+    	.info {
+    		padding: 6px 8px;
+    		font: 14px/16px Arial, Helvetica, sans-serif;
+    		background: white;
+    		background: rgba(255, 255, 255, 0.8);
+    		box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    		border-radius: 5px;
+    	}
+
+    	.info h4 {
+    		margin: 0 0 5px;
+    		color: #777;
+    	}
+
+    	.legend {
+    		text-align: left;
+    		line-height: 18px;
+    		color: #555;
+    	}
+
+    	.legend i {
+    		width: 17px;
+    		height: 17px;
+    		float: left;
+    		margin-right: 8px;
+    		opacity: 0.8;
+    	}
+    </style>
+
+</head>
+
+
+
+<body>
+
+    <div id="map" style="width: 100%; height: 100%"></div>
+
+    <script type="text/javascript">
+
+        var map = L.map('map').setView([37.8, -96], 4);
+
+        // auto map resizing
+        $(window).on("resize", function () {
+          $("#map").height($(window).height());
+          map.invalidateSize();
+        }).trigger("resize");
+
+        L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+    //----------------------------------
+    // LEGEND - lower right corner
+    //----------------------------------
+
+    // var legend = L.control({
+    // 	position: 'bottomright'
+    // });
+    //
+    // legend.onAdd = function(map) {
+    //
+    // 	var div = L.DomUtil.create('div', 'info legend'),
+    // 		grades = [0, 97, 106, 118, 140, 200],
+    // 		labels = [],
+    // 		from, to;
+    //
+    // 	for (var i = 0; i < grades.length; i++) {
+    // 		from = grades[i];
+    // 		to = grades[i + 1];
+    //
+    // 		labels.push(
+    // 			'<i style="background:' + getColor(from + 1) + '"></i> ' +
+    // 			from + (to ? '&ndash;' + to : '+'));
+    // 	}
+    // debugger;
+    // 	div.innerHTML = labels.join('<br>');
+    // 	return div;
+    // };
+    //
+    // legend.addTo(map);
+
+        //-----------------------------------------------
+		// CONTROL FOR POPUP ON MOUSE HOVER
+        //-----------------------------------------------
+
+        var info = L.control({
+              position: 'bottomleft'
+        });
+
+		info.onAdd = function(map) {
+			this._div = L.DomUtil.create('div', 'info');
+			this.update();
+			return this._div;
+		};
+
+		info.update = function(props) {
+			this._div.innerHTML = '<h4>Population Increase Rate</h4>' + (props ?
+				'<b>' + ' County: ' + props.name + '</b><br>' + ' Population Increase Rate: ' + props.pop_incr_r  : 'Hover over a county');
+		};
+
+		info.addTo(map);
+
+        //-----------------------------------------------
+        // FUNCTIONS FOR HANDLING THE POPUPS AND
+        // THE STYLING OF THE NEIGHBORHOOD POLYGONS
+        //-----------------------------------------------
+
+		// get color depending on population density value
+		function getColor(pop_incr_r) {
+			return pop_incr_r > 200 ? '#980043' :
+				pop_incr_r > 140 ? '#dd1c77' :
+				pop_incr_r > 118 ? '#df65b0' :
+				pop_incr_r > 106 ? '#c994c7' :
+				pop_incr_r > 97 ? '#d4b9da' :
+				pop_incr_r > 0 ? '#f1eef6' :
+				'#FFEDA0';
+		}
+
+        function style(feature) {
+			return {
+				weight: 2,
+				opacity: 1,
+				color: 'white',
+				dashArray: '3',
+				fillOpacity: 0.7,
+				fillColor: getColor(feature.properties.pop_incr_r)
+			};
+		}
+
+		function highlightFeature(e) {
+			var layer = e.target;
+
+			layer.setStyle({
+				weight: 5,
+				color: '#666',
+				dashArray: '',
+				fillOpacity: 0.7
+			});
+
+			if (!L.Browser.ie && !L.Browser.opera) {
+				layer.bringToFront();
+			}
+			info.update(layer.feature.properties);
+		}
+
+		function resetHighlight(e) {
+			geojson.resetStyle(e.target);
+			info.update();
+		}
+
+		function zoomToFeature(e) {
+          map.fitBounds(e.target.getBounds());
+		}
+
+		function onEachFeature(feature, layer) {
+            layer.on({ //addEventListeners
+                mouseover: highlightFeature, // mouse moves over shape
+				mouseout: resetHighlight, // mouse leaves shape
+				click: zoomToFeature // click on shape - was popup in other examples
+			});
+		}
+
+
+		var group = new L.markerClusterGroup().addTo(map);
+		var geojson; // layer for neighborhood shapes
+
+       //-----------------------------------------------
+       // FETCHING GEOJSON DATA FROM CARTODB
+       // CALL THE CARTODB SQL API HERE IN URL FORMAT
+       //-----------------------------------------------
+      var querystem = "https://linligood4you.carto.com/api/v2/sql?format=GeoJSON&q=SELECT * FROM crime_index_county WHERE state_name = '";
+      //var querystem = "https://as5472278.carto.com/api/v2/sql?format=GeoJSON&q=SELECT * FROM crime_index_county WHERE state_name = '";
+			var search = "Texas"; // can be gun, knife, blun_instrument, other
+			var query = querystem + search + "'";
+			//		    var query = "http://pfoser.cartodb.com/api/v2/sql?format=GeoJSON&q=SELECT * FROM nyc_homicides";
+			console.log("Initial query: " + query);
+
+			//var query = "https://linligood4you.carto.com/api/v2/sql?format=GeoJSON&q=SELECT * FROM crime_index_county WHERE state_fips = '48'";
+        //console.log("Query: "+query);
+
+        $.getJSON(query, function(cartodbdata) {
+          geojson = L.geoJson(cartodbdata,{
+            // add popup with info to each geosjon feature
+            style: style, //style neighborhood polygons
+            onEachFeature: onEachFeature //attached popup behavior
+          }).addTo(group);
+
+          map.fitBounds(group.getBounds()); // zooms to fit data
+        });
+
+            //-----------------------------------------------
+	    	// CONTROL FOR TEXT FIELD TO ENTER SEARCH TERM
+            //-----------------------------------------------
+			var myControl = L.Control.extend({
+				options: {
+					position: 'bottomleft'
+				},
+				onAdd: function(map) {
+					this._div = L.DomUtil.create('div', 'myControl');
+					this._div.innerHTML = '<h1 id="title">Search term</h1>' +
+						'<input type="text" id="myTextField" value="Virginia, District of Columbia" />' +
+						'<input type="submit" id="searchBtn" value="Search" onclick="change()"/>'
+					L.DomEvent.disableClickPropagation(this._div);
+					return this._div;
+				}
+			});
+
+
+            //-----------------------------------------------
+            // FUNCTIONS FOR HANDLING SEARCH FIELD
+            //-----------------------------------------------
+
+			// button functionality - get value from textfield and change layer
+			function change() {
+              search = document.getElementById('myTextField').value;
+				if (search.length == 0) {
+					alert('Nothing to search for...');
+					return;
+				}
+				// updating the layer means deleting the old one and
+				// adding a new one
+				group.removeLayer(geojson);
+
+				query = querystem + search + "'";
+				console.log("Changed query: " + query);
+
+				$.getJSON(query, function(data) {
+					geojson = L.geoJson(data, {
+						style: style, //style neighborhood polygons
+            onEachFeature: onEachFeature //attached popup behavior
+			//onEachFeature: function(feature, layer) {
+							// ADD A POPUP WITH SOME INFO
+							//layer.bindPopup("<h2>" + feature.properties.boroname + "</p>");
+						//}
+					}).addTo(group);
+                  map.fitBounds(group.getBounds());
+				});
+
+				var title = document.getElementById('title');
+				title.innerHTML = search;
+			}
+
+
+          map.addControl(new myControl());
+        console.log("Done!");
+
+	</script>
+</body>
+
+</html>
